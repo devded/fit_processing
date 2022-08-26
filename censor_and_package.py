@@ -1,12 +1,12 @@
 import os
 import csv
-import re 
+import re
 from bs4 import BeautifulSoup
 import bs4
 import shutil
 from io import StringIO
 import zipfile
-import numpy as np 
+import numpy as np
 PI = np.pi
 import codecs
 
@@ -67,11 +67,11 @@ CENSOR_COORDINATES = []
 #ADDITIONAL_FILES_TO_COPY = ['workout_gpx/strava_gpx/bike_and_run_gpx_info.ods']
 
 #will overwrite file if it already exists
-OVERWRITE = False 
-OVERWRITE_CSV = True 
+OVERWRITE = False
+OVERWRITE_CSV = True
 OVERWRITE_GPX = False 
 
-BLACKLIST = set(['test_file.csv'])
+BLACKLIST = {'test_file.csv'}
 
 #radius of earth in meters
 C_R = 6371. * 1000#/1.60934
@@ -87,12 +87,15 @@ def distcalc(c1, c2):
 
     a = np.sin(dlat/2.)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-    d = C_R * c 
-    return d 
+    return C_R * c 
 
 def calculate_distances(points):
-    dists = np.asarray([distcalc(c2.attrs,c1.attrs) for c1, c2 in zip(points[1:],points[:-1])])
-    return dists 
+    return np.asarray(
+        [
+            distcalc(c2.attrs, c1.attrs)
+            for c1, c2 in zip(points[1:], points[:-1])
+        ]
+    ) 
 
 def is_censorable(longitude, latitude):
     censor = False 
@@ -117,17 +120,17 @@ def find_gpx(directory):
     return [file for file in files if GPX_REGEX.match(file) and file not in BLACKLIST]
 
 def censor_line(x, template):
-    return [e if not template[i] else CENSOR_STRING for i, e in enumerate(x)]
+    return [CENSOR_STRING if template[i] else e for i, e in enumerate(x)]
 
 def transfer_csv(filename, directory, censor_target_dir):
     target_file = os.path.join(censor_target_dir, directory, filename)
-    if os.path.isfile(target_file) and not (OVERWRITE or OVERWRITE_CSV):
+    if os.path.isfile(target_file) and not OVERWRITE and not OVERWRITE_CSV:
         return 1
     with open(os.path.join(directory, filename), 'r') as f: 
         reader = csv.reader(f)
-        use_alternate_censoring = False 
+        use_alternate_censoring = False
         with codecs.open(os.path.join(censor_target_dir, os.path.split(directory)[1], filename),
-                         'w', encoding='utf8') as of:
+                                 'w', encoding='utf8') as of:
             writer = csv.writer(of)
             header = next(reader)
             writer.writerow(header)
@@ -144,11 +147,11 @@ def transfer_csv(filename, directory, censor_target_dir):
                     try:
                         other_latlong_indexes.append( ( header.index(names[0]), header.index(names[1])) )
                     except ValueError:
-                        continue 
+                        continue
             #currently not in use
             censorable_columns = [i for i, column in enumerate(header) if CENSOR_PARAMS.get(column, False)]
-            #currently in use 
-            should_censor = [CENSOR_PARAMS.get(column, False) for i, column in enumerate(header)]
+            #currently in use
+            should_censor = [CENSOR_PARAMS.get(column, False) for column in header]
             #print should_censor
             for line in reader:
                 if not use_alternate_censoring:
@@ -183,7 +186,7 @@ def transfer_csv(filename, directory, censor_target_dir):
                             writer.writerow(censor_line(line, should_censor))
                     else:
                         writer.writerow(line)
-        print('transfered %s' % (os.path.join(directory, filename)))
+        print(f'transfered {os.path.join(directory, filename)}')
 
 
 def load_censor_coordinates(censorfile):
@@ -206,7 +209,7 @@ def load_censor_coordinates(censorfile):
 
 def transfer_gpx(filename, directory, censor_target_dir):
     target_file = os.path.join(censor_target_dir, os.path.split(directory)[1], filename)
-    if os.path.isfile(target_file) and not (OVERWRITE or OVERWRITE_GPX):
+    if os.path.isfile(target_file) and not OVERWRITE and not OVERWRITE_GPX:
         return 1
     with open(os.path.join(directory, filename),'r') as f:
         data = f.read()
@@ -214,20 +217,20 @@ def transfer_gpx(filename, directory, censor_target_dir):
     trkpts = soup.find_all('trkpt')
     for pt in trkpts:
         lat, lon = (float(pt.attrs['lat']), float(pt.attrs['lon']) )
-        will_censor = is_censorable(lon, lat)
-        if will_censor:
+        if will_censor := is_censorable(lon, lat):
             if CENSOR_PARAMS['time']:
                 pt.decompose()
             else:
                 for child in pt.children:
-                    if isinstance(child, bs4.element.Tag):
-                        if CENSOR_PARAMS.get(child.name, False):
-                            child.decompose()
+                    if isinstance(
+                        child, bs4.element.Tag
+                    ) and CENSOR_PARAMS.get(child.name, False):
+                        child.decompose()
                 if CENSOR_PARAMS.get('lat', False):
                     pt.attrs['lat'] = CENSOR_STRING
                 if CENSOR_PARAMS.get('lon', False):
                     pt.attrs['lon'] = CENSOR_STRING 
-                
+
     with codecs.open(os.path.join(censor_target_dir, os.path.split(directory)[1],
                                   filename), 'w', encoding='utf8') as f:
         try:
@@ -236,7 +239,7 @@ def transfer_gpx(filename, directory, censor_target_dir):
             print(filename )
             print(directory )
             raise Exception('fix that damn unicode bug')
-    print('processed %s' % '/'.join([directory,filename]))
+    print(f"processed {'/'.join([directory, filename])}")
     return 0 
 
 def make_directories(censor_search_directories, censor_target_dir):
@@ -269,7 +272,7 @@ def main(
     if censorfile != '':
         make_directories(censor_search_directories, censor_target_dir)
         for directory in censor_search_directories:
-            print('searching %s' % directory )
+            print(f'searching {directory}')
             csv_files = find_csv(directory)
             gpx_files = find_gpx(directory)
             #print gpx_files
@@ -279,7 +282,7 @@ def main(
                 except Exception as e:
                     print('!')
                     print(filename )
-                    raise e 
+                    raise e
             for filename in gpx_files:
                 transfer_gpx(filename, directory, censor_target_dir)
     if options['archive_results']:

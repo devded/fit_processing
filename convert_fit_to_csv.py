@@ -80,28 +80,28 @@ def main(
     files = os.listdir(fit_target_dir)
     fit_files = [file for file in files if file[-4:].lower()=='.fit']
     overwritten_files = []
-    
+
     if not os.path.exists(ALT_LOG):
-        os.system('touch %s' % ALT_LOG)
+        os.system(f'touch {ALT_LOG}')
         file_list = []
     else:
         file_list = read_log(fit_processed_csv_dir)
-        
+
     for file in fit_files:
         is_overwritten=False
         if file in file_list and not fit_overwrite:
             continue
         elif file in file_list:
             is_overwritten=True
-            
-        new_filename = file[:-4] + '.csv'
-        
+
+        new_filename = f'{file[:-4]}.csv'
+
         fitfile = fitparse.FitFile(
             os.path.join(fit_target_dir, file),  
             data_processor=fitparse.StandardUnitsDataProcessor()
         )
-        
-        print('converting %s' % os.path.join(fit_target_dir, file))
+
+        print(f'converting {os.path.join(fit_target_dir, file)}')
         write_fitfile_to_csv(
             fitfile,
             new_filename,
@@ -114,10 +114,10 @@ def main(
     print('finished conversions')
 
 def lap_filename(output_filename):
-    return output_filename[:-4] + '_laps.csv'
+    return f'{output_filename[:-4]}_laps.csv'
 
 def start_filename(output_filename):
-    return output_filename[:-4] + '_starts.csv'
+    return f'{output_filename[:-4]}_starts.csv'
 
 def get_timestamp(messages):
     for m in messages:

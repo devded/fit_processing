@@ -10,7 +10,7 @@ import censor_and_package
 def main():
     options = parse_options()
     censor_search_directories = []
-    
+
     if options['gpx_source_dir'] != '':
         if not options['skip_gpx_conversion']:
             print('doing GPX conversions')
@@ -34,17 +34,15 @@ def main():
             )
         censor_search_directories.append(options['fit_processed_csv_dir'])
 
-    # even if no censoring is done, archiving can still be done here
-    if True: #options['censorfile'] != '' and len(censor_search_directories) > 0:
-        censor_target_dir = os.path.join(options['subject_dir'], options['name'], 'censored')
-        censor_and_package.main(
-            censor_search_directories,
-            censor_target_dir,
-            options['censorfile'],
-            options['censor_string'],
-            # will be used to control archiving
-            options
-        )
+    censor_target_dir = os.path.join(options['subject_dir'], options['name'], 'censored')
+    censor_and_package.main(
+        censor_search_directories,
+        censor_target_dir,
+        options['censorfile'],
+        options['censor_string'],
+        # will be used to control archiving
+        options
+    )
 
 
 
@@ -189,11 +187,3 @@ def parse_options():
 
 if __name__=='__main__':
     main()
-
-
-if False:
-    print('cleaning GPS data and importing from garmin...')
-    os.system('python calculate_workout_variables.py')
-    os.system('python gpx_to_csv.py')
-    os.system('python3 import_and_process_garmin_fit.py')
-    print('cleaned GPS data and imported from garmin...')

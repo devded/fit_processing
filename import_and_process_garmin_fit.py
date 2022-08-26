@@ -29,19 +29,16 @@ def main(
     print('current_files: ', current_files)
     for src_file, tgt_file in zip(activity_files, new_names):
         if FNAME_REGEX.sub('.fit', tgt_file) in current_files:
-            print('%s already exists...' % tgt_file)
+            print(f'{tgt_file} already exists...')
             continue
-        else:
-            pass
         shutil.copyfile(
             os.path.join(fit_source_dir, src_file),
             os.path.join(fit_target_dir, tgt_file)
         )
-        print("copied %s to %s" % (
-            os.path.join(fit_source_dir, src_file),
-            os.path.join(fit_target_dir, tgt_file)
+        print(
+            f"copied {os.path.join(fit_source_dir, src_file)} to {os.path.join(fit_target_dir, tgt_file)}"
         )
-        )
+
 
     convert_fit_to_csv.main(
         fit_target_dir,
